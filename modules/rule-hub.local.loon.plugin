@@ -1,0 +1,14 @@
+#!name=Rule Hub (Local)
+#!desc=Clash 规则集转换为 Loon 规则集
+#!author=@AdySnowflake
+#!tag=工具
+#!homepage=https://github.com/AdySnowflake/Rule-Hub
+#!openurl=https://rule.hub/
+#!icon=http://192.168.31.92:8080/assets/icon.png
+
+[MITM]
+hostname = rule.hub
+
+[Script]
+http-request ^https://rule\.hub(/)?$ script-path=http://192.168.31.92:8080/src/ui.js, timeout=10, tag=前端
+http-request ^https://rule\.hub/convert script-path=http://192.168.31.92:8080/src/ui.js, timeout=30, tag=规则集转换

@@ -1,0 +1,23 @@
+{
+  "name": "rule-hub",
+  "version": "1.2.0",
+  "description": "Rule-Hub: Clash 规则集 → Loon 规则集转换器",
+  "main": "src/converter.js",
+  "scripts": {
+    "build": "node build.js",
+    "prebuild": "npm test",
+    "test": "jest"
+  },
+  "keywords": [
+    "clash",
+    "loon",
+    "converter",
+    "rule-set",
+    "proxy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

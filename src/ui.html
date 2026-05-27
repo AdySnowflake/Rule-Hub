@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rule-Hub</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      font-size: 24px;
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    /* 输入模式切换 */
+    .mode-switch {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      background: #fff;
+      color: #666;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-btn:hover {
+      border-color: #3498db;
+      color: #3498db;
+    }
+
+    .mode-btn.active {
+      border-color: #3498db;
+      background: #3498db;
+      color: #fff;
+    }
+
+    /* 输入区域 */
+    .input-area {
+      margin-bottom: 15px;
+    }
+
+    .input-area label {
+      display: block;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .input-area input[type="text"],
+    .input-area textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      transition: border-color 0.2s;
+    }
+
+    .input-area input[type="text"]:focus,
+    .input-area textarea:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    .input-area textarea {
+      min-height: 200px;
+      resize: vertical;
+    }
+
+    /* 操作按钮 */
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #3498db;
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #2980b9;
+    }
+
+    .btn-secondary {
+      background: #95a5a6;
+      color: #fff;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #7f8c8d;
+    }
+
+    .btn-success {
+      background: #27ae60;
+      color: #fff;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #229954;
+    }
+
+    /* 加载状态 */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px;
+      color: #666;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e0e0e0;
+      border-top-color: #3498db;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 错误提示 */
+    .error {
+      background: #fee;
+      border: 1px solid #fcc;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 15px;
+      color: #c00;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .error-close {
+      background: none;
+      border: none;
+      color: #c00;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 5px;
+    }
+
+    /* 统计信息 */
+    .stats {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+
+    .stat-item {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .stat-item span {
+      font-weight: 600;
+      color: #333;
+    }
+
+    /* 输出区域 */
+    .output-area {
+      position: relative;
+    }
+
+    .output-area textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      background: #f8f9fa;
+      resize: vertical;
+    }
+
+    .output-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    /* Toast 提示 */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      z-index: 1000;
+      animation: fadeInOut 2s ease-in-out;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      15% { opacity: 1; transform: translateY(0); }
+      85% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+
+    /* 响应式 */
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+
+      .mode-switch {
+        flex-direction: column;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .stats {
+        flex-direction: column;
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <header>
+        <h1>Rule-Hub</h1>
+        <p>将 Clash 规则集转换为 Loon 规则集</p>
+      </header>
+
+      <!-- 输入区域 -->
+      <div class="card">
+        <div class="card-title">输入规则</div>
+
+        <!-- 模式切换 -->
+        <div class="mode-switch">
+          <button
+            class="mode-btn"
+            :class="{ active: inputMode === 'text' }"
+            @click="inputMode = 'text'"
+          >
+            粘贴文本
+          </button>
+          <button
+            class="mode-btn"
+            :class="{ active: inputMode === 'url' }"
+            @click="inputMode = 'url'"
+          >
+            URL 获取
+          </button>
+        </div>
+
+        <!-- URL 输入 -->
+        <div v-if="inputMode === 'url'" class="input-area">
+          <label>规则集 URL</label>
+          <input
+            type="text"
+            v-model="inputUrl"
+            placeholder="https://example.com/rules.yaml"
+            @keyup.enter="convert"
+          >
+        </div>
+
+        <!-- 文本输入 -->
+        <div v-if="inputMode === 'text'" class="input-area">
+          <label>Clash 规则集</label>
+          <textarea
+            v-model="inputText"
+            placeholder="粘贴 Clash 规则集内容...&#10;&#10;支持格式：&#10;- YAML 格式（payload: 开头）&#10;- 纯文本格式（每行一条规则）"
+          ></textarea>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="actions">
+          <button
+            class="btn btn-primary"
+            :disabled="!canConvert || loading"
+            @click="convert"
+          >
+            {{ loading ? '转换中...' : '开始转换' }}
+          </button>
+          <button
+            class="btn btn-secondary"
+            @click="clear"
+          >
+            清空
+          </button>
+        </div>
+      </div>
+
+      <!-- 错误提示 -->
+      <div v-if="error" class="error">
+        <span>{{ error }}</span>
+        <button class="error-close" @click="error = null">&times;</button>
+      </div>
+
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading">
+        <div class="spinner"></div>
+        <span>正在转换...</span>
+      </div>
+
+      <!-- 输出区域 -->
+      <div v-if="outputText && !loading" class="card">
+        <div class="card-title">转换结果</div>
+
+        <!-- 统计信息 -->
+        <div v-if="stats" class="stats">
+          <div class="stat-item">
+            原始规则: <span>{{ stats.originalCount }}</span>
+          </div>
+          <div class="stat-item">
+            转换成功: <span>{{ stats.convertedCount }}</span>
+          </div>
+          <div class="stat-item">
+            不支持: <span>{{ stats.unsupportedCount }}</span>
+          </div>
+        </div>
+
+        <!-- 输出文本 -->
+        <div class="output-area">
+          <textarea
+            v-model="outputText"
+            readonly
+          ></textarea>
+        </div>
+
+        <!-- 输出操作 -->
+        <div class="output-actions">
+          <button class="btn btn-success" @click="copyResult">
+            复制结果
+          </button>
+          <button class="btn btn-primary" v-if="inputMode === 'url'" @click="copyLink">
+            复制链接
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div v-if="toast" class="toast">
+      {{ toast }}
+    </div>
+  </div>
+
+  <!-- 引入核心模块 -->
+  <script src="clash-rules.js"></script>
+  <script src="loon-rules.js"></script>
+  <script src="converter.js"></script>
+  <script>
+    const { createApp, ref, computed } = Vue;
+
+    const app = createApp({
+      setup() {
+        // 响应式数据
+        const inputMode = ref('text');
+        const inputUrl = ref('');
+        const inputText = ref('');
+        const outputText = ref('');
+        const loading = ref(false);
+        const error = ref(null);
+        const stats = ref(null);
+        const toast = ref(null);
+
+        // 计算属性
+        const canConvert = computed(() => {
+          if (inputMode.value === 'url') {
+            return inputUrl.value.trim().length > 0;
+          }
+          return inputText.value.trim().length > 0;
+        });
+
+        // 显示 Toast
+        const showToast = (message, duration = 2000) => {
+          toast.value = message;
+          setTimeout(() => {
+            toast.value = null;
+          }, duration);
+        };
+
+        // 转换
+        const convert = async () => {
+          loading.value = true;
+          error.value = null;
+          outputText.value = '';
+          stats.value = null;
+
+          try {
+            let text = inputText.value;
+
+            // 如果是 URL 模式，先获取内容
+            if (inputMode.value === 'url') {
+              text = await fetchRulesFromUrl(inputUrl.value);
+            }
+
+            // 执行转换
+            const result = convertClashToLoon(text);
+
+            // 解析统计信息
+            stats.value = parseStats(result);
+
+            // 设置输出
+            outputText.value = result;
+
+          } catch (err) {
+            error.value = err.message;
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        // 复制结果
+        const copyResult = async () => {
+          try {
+            await navigator.clipboard.writeText(outputText.value);
+            showToast('已复制到剪贴板');
+          } catch (err) {
+            // 降级方案
+            const textarea = document.createElement('textarea');
+            textarea.value = outputText.value;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('已复制到剪贴板');
+          }
+        };
+
+        // 复制订阅链接
+        const copyLink = async () => {
+          const base = location.origin;
+          const link = base + '/convert?url=' + encodeURIComponent(inputUrl.value);
+          try {
+            await navigator.clipboard.writeText(link);
+            showToast('链接已复制到剪贴板');
+          } catch (err) {
+            const textarea = document.createElement('textarea');
+            textarea.value = link;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('链接已复制到剪贴板');
+          }
+        };
+
+        // 导入 Loon
+        const importToLoon = () => {
+          try {
+            const encoded = encodeURIComponent(outputText.value);
+            const url = `loon://import?data=${encoded}`;
+            window.location.href = url;
+            showToast('正在尝试导入 Loon...');
+          } catch (err) {
+            error.value = '导入失败: ' + err.message;
+          }
+        };
+
+        // 清空
+        const clear = () => {
+          inputUrl.value = '';
+          inputText.value = '';
+          outputText.value = '';
+          error.value = null;
+          stats.value = null;
+        };
+
+        return {
+          inputMode,
+          inputUrl,
+          inputText,
+          outputText,
+          loading,
+          error,
+          stats,
+          toast,
+          canConvert,
+          convert,
+          copyResult,
+          copyLink,
+          clear
+        };
+      }
+    });
+
+    app.mount('#app');
+  </script>
+</body>
+</html>
