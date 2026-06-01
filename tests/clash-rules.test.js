@@ -8,6 +8,8 @@ const {
   parsePlainText,
   parseRuleLine,
   parsePortRule,
+  extractSubRules,
+  parseLogicRule,
   inferRuleType,
   isSupportedType,
   cleanLine
@@ -397,5 +399,169 @@ DST-PORT,8080`;
     expect(rules[1].type).toBe('DST-PORT');
     expect(rules[2].type).toBe('DOMAIN');
     expect(rules[3].type).toBe('DST-PORT');
+  });
+});
+
+describe('extractSubRules', () => {
+  test('提取两个子规则', () => {
+    const result = extractSubRules('(DOMAIN,example.com),(DST-PORT,443)');
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBe('DOMAIN,example.com');
+    expect(result[1]).toBe('DST-PORT,443');
+  });
+
+  test('提取一个子规则', () => {
+    const result = extractSubRules('(DOMAIN,example.com)');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe('DOMAIN,example.com');
+  });
+
+  test('提取三个子规则', () => {
+    const result = extractSubRules('(DOMAIN,example.com),(DST-PORT,443),(GEOIP,CN)');
+    expect(result).toHaveLength(3);
+    expect(result[0]).toBe('DOMAIN,example.com');
+    expect(result[1]).toBe('DST-PORT,443');
+    expect(result[2]).toBe('GEOIP,CN');
+  });
+
+  test('处理嵌套括号', () => {
+    const result = extractSubRules('(AND,(DOMAIN,a.com),(DST-PORT,80)),(GEOIP,CN)');
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBe('AND,(DOMAIN,a.com),(DST-PORT,80)');
+    expect(result[1]).toBe('GEOIP,CN');
+  });
+});
+
+describe('parseLogicRule', () => {
+  test('解析 AND 逻辑规则', () => {
+    const rule = parseLogicRule('AND', '(DOMAIN,example.com),(DST-PORT,443)', 'DIRECT', '');
+    expect(rule.type).toBe('AND');
+    expect(rule.operands).toHaveLength(2);
+    expect(rule.operands[0]).toEqual({ type: 'DOMAIN', value: 'example.com', supported: true, noResolve: '' });
+    expect(rule.operands[1]).toEqual({ type: 'DST-PORT', value: '443', supported: true, noResolve: '' });
+    expect(rule.policy).toBe('DIRECT');
+    expect(rule.supported).toBe(true);
+  });
+
+  test('解析 OR 逻辑规则', () => {
+    const rule = parseLogicRule('OR', '(DOMAIN,example.com),(DST-PORT,443)', 'REJECT', '');
+    expect(rule.type).toBe('OR');
+    expect(rule.operands).toHaveLength(2);
+    expect(rule.policy).toBe('REJECT');
+    expect(rule.supported).toBe(true);
+  });
+
+  test('解析 NOT 逻辑规则', () => {
+    const rule = parseLogicRule('NOT', '(DOMAIN,baidu.com)', 'PROXY', '');
+    expect(rule.type).toBe('NOT');
+    expect(rule.operands).toHaveLength(1);
+    expect(rule.operands[0]).toEqual({ type: 'DOMAIN', value: 'baidu.com', supported: true, noResolve: '' });
+    expect(rule.policy).toBe('PROXY');
+    expect(rule.supported).toBe(true);
+  });
+
+  test('子规则不支持时 supported 为 false', () => {
+    const rule = parseLogicRule('AND', '(DOMAIN,example.com),(RULE-SET,xxx)', 'DIRECT', '');
+    expect(rule.supported).toBe(false);
+    expect(rule.operands[0].supported).toBe(true);
+    expect(rule.operands[1].supported).toBe(false);
+  });
+
+  test('no-resolve 传递', () => {
+    const rule = parseLogicRule('AND', '(DOMAIN,example.com),(DST-PORT,443)', 'DIRECT', ',no-resolve');
+    expect(rule.noResolve).toBe(',no-resolve');
+  });
+});
+
+describe('parseRuleLine - 逻辑规则', () => {
+  test('AND 逻辑规则', () => {
+    const rules = parseRuleLine('AND,((DOMAIN,example.com),(DST-PORT,443)),DIRECT');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].type).toBe('AND');
+    expect(rules[0].operands).toHaveLength(2);
+    expect(rules[0].operands[0].type).toBe('DOMAIN');
+    expect(rules[0].operands[0].value).toBe('example.com');
+    expect(rules[0].operands[1].type).toBe('DST-PORT');
+    expect(rules[0].operands[1].value).toBe('443');
+    expect(rules[0].policy).toBe('DIRECT');
+    expect(rules[0].supported).toBe(true);
+  });
+
+  test('OR 逻辑规则', () => {
+    const rules = parseRuleLine('OR,((DOMAIN,example.com),(DST-PORT,443)),REJECT');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].type).toBe('OR');
+    expect(rules[0].policy).toBe('REJECT');
+  });
+
+  test('NOT 逻辑规则', () => {
+    const rules = parseRuleLine('NOT,((DOMAIN,baidu.com)),PROXY');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].type).toBe('NOT');
+    expect(rules[0].operands).toHaveLength(1);
+    expect(rules[0].policy).toBe('PROXY');
+  });
+
+  test('带注释的逻辑规则', () => {
+    const rules = parseRuleLine('AND,((DOMAIN,example.com),(DST-PORT,443)),DIRECT // proxy list');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].type).toBe('AND');
+    expect(rules[0].policy).toBe('DIRECT');
+  });
+
+  test('AND 大小写不敏感', () => {
+    const rules = parseRuleLine('and,((DOMAIN,example.com),(DST-PORT,443)),DIRECT');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].type).toBe('AND');
+  });
+
+  test('嵌套逻辑规则', () => {
+    const rules = parseRuleLine('AND,((OR,(DOMAIN,a.com),(DOMAIN,b.com)),(DST-PORT,443)),DIRECT');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].type).toBe('AND');
+    expect(rules[0].operands).toHaveLength(2);
+    expect(rules[0].operands[0].type).toBe('OR');
+    expect(rules[0].operands[1].type).toBe('DST-PORT');
+  });
+
+  test('不支持的子规则导致 supported 为 false', () => {
+    const rules = parseRuleLine('AND,((DOMAIN,example.com),(RULE-SET,xxx)),DIRECT');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].supported).toBe(false);
+    expect(rules[0].operands[0].supported).toBe(true);
+    expect(rules[0].operands[1].supported).toBe(false);
+  });
+});
+
+describe('parseClashRules - 逻辑规则端到端', () => {
+  test('AND 规则完整解析', () => {
+    const text = 'AND,((DOMAIN,example.com),(DST-PORT,443)),DIRECT';
+    const rules = parseClashRules(text);
+    expect(rules).toHaveLength(1);
+    expect(rules[0].type).toBe('AND');
+    expect(rules[0].operands).toHaveLength(2);
+    expect(rules[0].policy).toBe('DIRECT');
+    expect(rules[0].supported).toBe(true);
+  });
+
+  test('混合逻辑规则和普通规则', () => {
+    const text = `DOMAIN,www.google.com
+AND,((DOMAIN,example.com),(DST-PORT,443)),DIRECT
+IP-CIDR,192.168.0.0/16,no-resolve`;
+    const rules = parseClashRules(text);
+    expect(rules).toHaveLength(3);
+    expect(rules[0].type).toBe('DOMAIN');
+    expect(rules[1].type).toBe('AND');
+    expect(rules[2].type).toBe('IP-CIDR');
+  });
+
+  test('YAML 格式逻辑规则', () => {
+    const text = `payload:
+- AND,((DOMAIN,example.com),(DST-PORT,443)),DIRECT
+- OR,((GEOIP,CN),(DOMAIN-SUFFIX,baidu.com)),PROXY`;
+    const rules = parseClashRules(text);
+    expect(rules).toHaveLength(2);
+    expect(rules[0].type).toBe('AND');
+    expect(rules[1].type).toBe('OR');
   });
 });

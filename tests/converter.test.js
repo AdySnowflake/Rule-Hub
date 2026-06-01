@@ -168,6 +168,48 @@ IP-CIDR,192.168.0.0/16`;
 
     expect(output).toContain('DOMAIN-SUFFIX,example.com');
   });
+
+  test('should convert AND logic rule', () => {
+    const input = 'AND,((DOMAIN,example.com),(DST-PORT,443)),DIRECT';
+    const output = convertClashToLoon(input);
+
+    expect(output).toContain('AND,((DOMAIN,example.com),(DEST-PORT,443)),DIRECT');
+    expect(output).not.toContain('DST-PORT');
+  });
+
+  test('should convert OR logic rule', () => {
+    const input = 'OR,((DOMAIN,example.com),(DST-PORT,443)),REJECT';
+    const output = convertClashToLoon(input);
+
+    expect(output).toContain('OR,((DOMAIN,example.com),(DEST-PORT,443)),REJECT');
+  });
+
+  test('should convert NOT logic rule', () => {
+    const input = 'NOT,((DOMAIN,baidu.com)),PROXY';
+    const output = convertClashToLoon(input);
+
+    expect(output).toContain('NOT,((DOMAIN,baidu.com)),PROXY');
+  });
+
+  test('should convert mixed logic and normal rules', () => {
+    const input = `DOMAIN,www.google.com
+AND,((DOMAIN,example.com),(DST-PORT,443)),DIRECT
+IP-CIDR,192.168.0.0/16,no-resolve`;
+    const output = convertClashToLoon(input);
+
+    expect(output).toContain('DOMAIN,www.google.com');
+    expect(output).toContain('AND,((DOMAIN,example.com),(DEST-PORT,443)),DIRECT');
+    expect(output).toContain('IP-CIDR,192.168.0.0/16,no-resolve');
+  });
+
+  test('should filter unsupported logic rules', () => {
+    const input = `DOMAIN,example.com
+AND,((DOMAIN,example.com),(RULE-SET,xxx)),DIRECT`;
+    const output = convertClashToLoon(input);
+
+    expect(output).toContain('DOMAIN,example.com');
+    expect(output).not.toContain('AND,((DOMAIN,example.com),(RULE-SET,xxx))');
+  });
 });
 
 describe('parseStats', () => {

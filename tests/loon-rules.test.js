@@ -61,6 +61,59 @@ describe('formatLoonRule', () => {
     const rule = { type: 'UNKNOWN', value: 'test', noResolve: '' };
     expect(formatLoonRule(rule)).toBeNull();
   });
+
+  test('should format AND logic rule', () => {
+    const rule = {
+      type: 'AND',
+      operands: [
+        { type: 'DOMAIN', value: 'example.com', noResolve: '' },
+        { type: 'DST-PORT', value: '443', noResolve: '' }
+      ],
+      policy: 'DIRECT',
+      noResolve: ''
+    };
+    expect(formatLoonRule(rule)).toBe('AND,((DOMAIN,example.com),(DEST-PORT,443)),DIRECT');
+  });
+
+  test('should format OR logic rule', () => {
+    const rule = {
+      type: 'OR',
+      operands: [
+        { type: 'GEOIP', value: 'CN', noResolve: '' },
+        { type: 'DOMAIN-SUFFIX', value: 'baidu.com', noResolve: '' }
+      ],
+      policy: 'REJECT',
+      noResolve: ''
+    };
+    expect(formatLoonRule(rule)).toBe('OR,((GEOIP,CN),(DOMAIN-SUFFIX,baidu.com)),REJECT');
+  });
+
+  test('should format NOT logic rule', () => {
+    const rule = {
+      type: 'NOT',
+      operands: [
+        { type: 'DOMAIN', value: 'baidu.com', noResolve: '' }
+      ],
+      policy: 'PROXY',
+      noResolve: ''
+    };
+    expect(formatLoonRule(rule)).toBe('NOT,((DOMAIN,baidu.com)),PROXY');
+  });
+
+  test('should convert DST-PORT to DEST-PORT in logic rule', () => {
+    const rule = {
+      type: 'AND',
+      operands: [
+        { type: 'DOMAIN', value: 'example.com', noResolve: '' },
+        { type: 'DST-PORT', value: '443', noResolve: '' }
+      ],
+      policy: 'DIRECT',
+      noResolve: ''
+    };
+    const output = formatLoonRule(rule);
+    expect(output).toContain('DEST-PORT,443');
+    expect(output).not.toContain('DST-PORT');
+  });
 });
 
 describe('generateStatsHeader', () => {

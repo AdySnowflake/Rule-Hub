@@ -29,10 +29,19 @@ function filterUnsupported(rules) {
 
 /**
  * 格式化单条 Loon 规则
- * @param {{ type: string, value: string, noResolve: string }} rule - 规则对象
+ * @param {{ type: string, value: string, noResolve: string, operands?: Array, policy?: string }} rule - 规则对象
  * @returns {string|null} 格式化后的规则字符串
  */
 function formatLoonRule(rule) {
+  // 逻辑规则
+  if (rule.type === 'AND' || rule.type === 'OR' || rule.type === 'NOT') {
+    const subRules = rule.operands.map(operand => {
+      const mappedType = TYPE_MAPPING[operand.type] || operand.type;
+      return `(${mappedType},${operand.value}${operand.noResolve || ''})`;
+    }).join(',');
+    return `${rule.type},(${subRules}),${rule.policy}`;
+  }
+
   const mappedType = TYPE_MAPPING[rule.type];
 
   if (!mappedType) {

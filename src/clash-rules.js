@@ -15,7 +15,10 @@ const SUPPORTED_TYPES = [
   'GEOIP',
   'SRC-PORT',
   'DST-PORT',
-  'MATCH'
+  'MATCH',
+  'AND',
+  'OR',
+  'NOT'
 ];
 
 // 正则量词逗号保护占位符（与原版 t&zd; 一致）
@@ -164,6 +167,81 @@ function parsePortRule(type, value, noResolve) {
 }
 
 /**
+ * 提取逻辑规则中的子规则字符串
+ * @param {string} content - 括号内容，如 "(DOMAIN,example.com),(DST-PORT,443)" 或 "((DOMAIN,example.com),(DST-PORT,443))"
+ * @returns {string[]} 子规则字符串数组
+ */
+function extractSubRules(content) {
+  // 处理 ((...)) 格式：剥离一层括号
+  let str = content;
+  if (str.startsWith('((') && str.endsWith('))')) {
+    str = str.slice(1, -1);
+  }
+
+  const rules = [];
+  let depth = 0;
+  let current = '';
+
+  for (const char of str) {
+    if (char === '(') {
+      if (depth > 0) current += char;
+      depth++;
+    } else if (char === ')') {
+      depth--;
+      if (depth === 0) {
+        rules.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    } else if (depth > 0) {
+      current += char;
+    }
+  }
+
+  return rules;
+}
+
+/**
+ * 解析逻辑规则（AND/OR/NOT）
+ * @param {string} type - 逻辑类型
+ * @param {string} operandsStr - 操作数括号内容
+ * @param {string} policy - 策略名
+ * @param {string} noResolve - no-resolve 标志
+ * @returns {Object} 复合规则对象
+ */
+function parseLogicRule(type, operandsStr, policy, noResolve) {
+  const subRuleStrings = extractSubRules(operandsStr);
+
+  const operands = subRuleStrings.map(str => {
+    // 剥离子规则外层 ()
+    const inner = str.startsWith('(') && str.endsWith(')') ? str.slice(1, -1) : str;
+    const commaIdx = inner.indexOf(',');
+    if (commaIdx === -1) {
+      return { type: inner.toUpperCase().trim(), value: '', supported: false, noResolve: '' };
+    }
+    const subType = inner.substring(0, commaIdx).toUpperCase().trim();
+    const subValue = inner.substring(commaIdx + 1).trim();
+    return {
+      type: subType,
+      value: subValue,
+      supported: isSupportedType(subType),
+      noResolve: ''
+    };
+  });
+
+  const allSupported = operands.every(op => op.supported);
+
+  return {
+    type,
+    operands,
+    policy,
+    supported: allSupported,
+    noResolve
+  };
+}
+
+/**
  * 解析单行规则
  * @param {string} line - 规则行
  * @returns {Array<{ type: string, value: string, supported: boolean, noResolve: string }>}
@@ -182,6 +260,24 @@ function parseRuleLine(line) {
 
   if (parts.length >= 2) {
     const type = parts[0].toUpperCase().trim();
+
+    // 逻辑规则特殊处理
+    if ((type === 'AND' || type === 'OR' || type === 'NOT') && cleaned.includes('((')) {
+      const startIdx = cleaned.indexOf('((');
+      let depth = 0;
+      let endIdx = -1;
+      for (let i = startIdx; i < cleaned.length; i++) {
+        if (cleaned[i] === '(') depth++;
+        else if (cleaned[i] === ')') depth--;
+        if (depth === 0) { endIdx = i; break; }
+      }
+      if (endIdx === -1) return [];
+      const operandsStr = cleaned.substring(startIdx, endIdx + 1);
+      const afterOperands = cleaned.substring(endIdx + 1);
+      const policyMatch = afterOperands.match(/,([^,]+)$/);
+      const policy = policyMatch ? policyMatch[1].trim() : 'DIRECT';
+      return [parseLogicRule(type, operandsStr, policy, noResolve)];
+    }
 
     // 端口规则特殊处理：收集所有端口值
     if (type === 'SRC-PORT' || type === 'DST-PORT') {
@@ -273,6 +369,8 @@ if (typeof window !== 'undefined') {
   window.parsePlainText = parsePlainText;
   window.parseRuleLine = parseRuleLine;
   window.parsePortRule = parsePortRule;
+  window.extractSubRules = extractSubRules;
+  window.parseLogicRule = parseLogicRule;
   window.inferRuleType = inferRuleType;
   window.isSupportedType = isSupportedType;
   window.cleanLine = cleanLine;
@@ -288,6 +386,8 @@ if (typeof module !== 'undefined' && module.exports) {
     parsePlainText,
     parseRuleLine,
     parsePortRule,
+    extractSubRules,
+    parseLogicRule,
     inferRuleType,
     isSupportedType,
     cleanLine,

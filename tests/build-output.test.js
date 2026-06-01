@@ -128,6 +128,27 @@ describe('构建产物验证 - 转换引擎', () => {
     expect(output).toContain('GEOIP,CN');
   });
 
+  test('AND 逻辑规则转换', () => {
+    const input = 'AND,((DOMAIN,example.com),(DST-PORT,443)),DIRECT';
+    const output = sandbox.convertClashToLoon(input);
+
+    expect(output).toContain('AND,((DOMAIN,example.com),(DEST-PORT,443)),DIRECT');
+  });
+
+  test('OR 逻辑规则转换', () => {
+    const input = 'OR,((DOMAIN,example.com),(DST-PORT,443)),REJECT';
+    const output = sandbox.convertClashToLoon(input);
+
+    expect(output).toContain('OR,((DOMAIN,example.com),(DEST-PORT,443)),REJECT');
+  });
+
+  test('NOT 逻辑规则转换', () => {
+    const input = 'NOT,((DOMAIN,baidu.com)),PROXY';
+    const output = sandbox.convertClashToLoon(input);
+
+    expect(output).toContain('NOT,((DOMAIN,baidu.com)),PROXY');
+  });
+
   test('parseStats 正确解析统计信息', () => {
     const loonText = `# Loon 规则集\n# 生成时间: 2026-01-01\n# 原始规则数: 10\n# 转换规则数: 8\n# 不支持规则数: 2\nDOMAIN,example.com`;
     const stats = sandbox.parseStats(loonText);
