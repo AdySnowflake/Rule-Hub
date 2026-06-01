@@ -62,6 +62,33 @@ describe('构建产物验证 - 转换引擎', () => {
     expect(output).toContain('DOMAIN,example.com');
   });
 
+  test('DST-PORT 多端口 / 拆分为多条 DEST-PORT', () => {
+    const input = 'DST-PORT,80/443/8080';
+    const output = sandbox.convertClashToLoon(input);
+
+    expect(output).toContain('DEST-PORT,80');
+    expect(output).toContain('DEST-PORT,443');
+    expect(output).toContain('DEST-PORT,8080');
+    expect(output).not.toContain('DST-PORT');
+  });
+
+  test('DST-PORT 多端口 , 拆分为多条 DEST-PORT', () => {
+    const input = 'DST-PORT,80,443,8080';
+    const output = sandbox.convertClashToLoon(input);
+
+    expect(output).toContain('DEST-PORT,80');
+    expect(output).toContain('DEST-PORT,443');
+    expect(output).toContain('DEST-PORT,8080');
+  });
+
+  test('SRC-PORT 多端口拆分', () => {
+    const input = 'SRC-PORT,1024,2048';
+    const output = sandbox.convertClashToLoon(input);
+
+    expect(output).toContain('SRC-PORT,1024');
+    expect(output).toContain('SRC-PORT,2048');
+  });
+
   test('// 注释被剥离', () => {
     const input = 'DOMAIN-SUFFIX,example.com // comment';
     const output = sandbox.convertClashToLoon(input);

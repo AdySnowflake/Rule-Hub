@@ -67,16 +67,16 @@ function formatLoonRule(rule) {
 
 /**
  * 生成统计信息头
- * @param {Array} originalRules - 原始规则数组
+ * @param {number} originalCount - 原始规则数量
  * @param {Array} convertedRules - 转换后的规则数组
  * @param {Array} unsupportedRules - 不支持的规则数组
  * @returns {string} 统计信息头
  */
-function generateStatsHeader(originalRules, convertedRules, unsupportedRules) {
+function generateStatsHeader(originalCount, convertedRules, unsupportedRules) {
   const lines = [
     '# Loon 规则集',
     `# 生成时间: ${new Date().toISOString()}`,
-    `# 原始规则数: ${originalRules.length}`,
+    `# 原始规则数: ${originalCount}`,
     `# 转换规则数: ${convertedRules.length}`,
     `# 不支持规则数: ${unsupportedRules.length}`,
     ''
@@ -88,9 +88,10 @@ function generateStatsHeader(originalRules, convertedRules, unsupportedRules) {
 /**
  * 生成 Loon 规则集
  * @param {Array<{ type: string, value: string, supported: boolean, noResolve: string }>} rules - 规则数组
+ * @param {number} [originalCount] - 原始规则数量（拆分前），默认使用 rules.length
  * @returns {string} Loon 规则集文本
  */
-function generateLoonRules(rules) {
+function generateLoonRules(rules, originalCount) {
   const supportedRules = filterUnsupported(rules);
   const unsupportedRules = rules.filter(r => !r.supported || LOON_UNSUPPORTED_TYPES.includes(r.type));
 
@@ -103,7 +104,7 @@ function generateLoonRules(rules) {
     }
   }
 
-  const header = generateStatsHeader(rules, loonRules, unsupportedRules);
+  const header = generateStatsHeader(originalCount !== undefined ? originalCount : rules.length, loonRules, unsupportedRules);
 
   return header + loonRules.join('\n');
 }

@@ -111,6 +111,45 @@ DOMAIN,example.com`;
     expect(output).toContain('DOMAIN,example.com');
   });
 
+  test('should convert DST-PORT 多端口 / 为多条 DEST-PORT', () => {
+    const input = 'DST-PORT,80/443/8080';
+    const output = convertClashToLoon(input);
+
+    expect(output).toContain('DEST-PORT,80');
+    expect(output).toContain('DEST-PORT,443');
+    expect(output).toContain('DEST-PORT,8080');
+    expect(output).not.toContain('DST-PORT');
+  });
+
+  test('should convert DST-PORT 多端口 , 为多条 DEST-PORT', () => {
+    const input = 'DST-PORT,80,443,8080';
+    const output = convertClashToLoon(input);
+
+    expect(output).toContain('DEST-PORT,80');
+    expect(output).toContain('DEST-PORT,443');
+    expect(output).toContain('DEST-PORT,8080');
+  });
+
+  test('should convert SRC-PORT 多端口', () => {
+    const input = 'SRC-PORT,1024,2048';
+    const output = convertClashToLoon(input);
+
+    expect(output).toContain('SRC-PORT,1024');
+    expect(output).toContain('SRC-PORT,2048');
+  });
+
+  test('should handle mixed port and domain rules', () => {
+    const input = `DST-PORT,80/443
+DOMAIN,example.com
+DST-PORT,8080`;
+    const output = convertClashToLoon(input);
+
+    expect(output).toContain('DEST-PORT,80');
+    expect(output).toContain('DEST-PORT,443');
+    expect(output).toContain('DOMAIN,example.com');
+    expect(output).toContain('DEST-PORT,8080');
+  });
+
   test('should strip script/metadata lines', () => {
     const input = `DOMAIN,example.com
 test-script.js enabled = true

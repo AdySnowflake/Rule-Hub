@@ -66,11 +66,11 @@ describe('formatLoonRule', () => {
 
 describe('generateStatsHeader', () => {
   test('should generate stats header', () => {
-    const originalRules = [{ type: 'DOMAIN' }, { type: 'IP-CIDR' }];
+    const originalCount = 2;
     const convertedRules = ['DOMAIN,example.com'];
     const unsupportedRules = [];
 
-    const header = generateStatsHeader(originalRules, convertedRules, unsupportedRules);
+    const header = generateStatsHeader(originalCount, convertedRules, unsupportedRules);
 
     expect(header).toContain('# Loon 规则集');
     expect(header).toContain('# 原始规则数: 2');

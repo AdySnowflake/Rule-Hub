@@ -56,13 +56,19 @@ function convertClashToLoon(text) {
       ? generateLoonRules
       : require('./loon-rules').generateLoonRules;
 
+    // 计算原始规则数（拆分前的非空非注释行数）
+    const originalCount = text.split('\n').filter(line => {
+      const trimmed = line.trim();
+      return trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('//') && !trimmed.startsWith(';');
+    }).length;
+
     const rules = _parseClashRules(text);
 
     if (rules.length === 0) {
       throw new ConverterError('未找到有效的规则', ERROR_CODES.NO_RULES);
     }
 
-    return _generateLoonRules(rules);
+    return _generateLoonRules(rules, originalCount);
 
   } catch (error) {
     if (error instanceof ConverterError) {

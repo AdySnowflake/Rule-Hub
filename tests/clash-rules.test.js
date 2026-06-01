@@ -7,6 +7,7 @@ const {
   parseClashRules,
   parsePlainText,
   parseRuleLine,
+  parsePortRule,
   inferRuleType,
   isSupportedType,
   cleanLine
@@ -81,24 +82,28 @@ describe('cleanLine - 输入清洗对齐原版', () => {
 
 describe('parseRuleLine - no-resolve 处理', () => {
   test('should parse no-resolve (standard)', () => {
-    const rule = parseRuleLine('IP-CIDR,192.168.0.0/16,no-resolve');
-    expect(rule.noResolve).toBe(',no-resolve');
+    const rules = parseRuleLine('IP-CIDR,192.168.0.0/16,no-resolve');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].noResolve).toBe(',no-resolve');
   });
 
   test('should parse no-resolve with spaces', () => {
-    const rule = parseRuleLine('IP-CIDR,1.1.1.0/24, no-resolve');
-    expect(rule.noResolve).toBe(',no-resolve');
-    expect(rule.value).toBe('1.1.1.0/24');
+    const rules = parseRuleLine('IP-CIDR,1.1.1.0/24, no-resolve');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].noResolve).toBe(',no-resolve');
+    expect(rules[0].value).toBe('1.1.1.0/24');
   });
 
   test('should parse NO-RESOLVE case-insensitive', () => {
-    const rule = parseRuleLine('IP-CIDR,10.0.0.0/8,NO-RESOLVE');
-    expect(rule.noResolve).toBe(',no-resolve');
+    const rules = parseRuleLine('IP-CIDR,10.0.0.0/8,NO-RESOLVE');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].noResolve).toBe(',no-resolve');
   });
 
   test('should parse No-Resolve mixed case', () => {
-    const rule = parseRuleLine('IP-CIDR,172.16.0.0/12,No-Resolve');
-    expect(rule.noResolve).toBe(',no-resolve');
+    const rules = parseRuleLine('IP-CIDR,172.16.0.0/12,No-Resolve');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].noResolve).toBe(',no-resolve');
   });
 });
 
@@ -271,5 +276,126 @@ describe('isSupportedType', () => {
   test('should return false for unsupported types', () => {
     expect(isSupportedType('SCRIPT')).toBe(false);
     expect(isSupportedType('RULE-SET')).toBe(false);
+  });
+});
+
+describe('parsePortRule - 端口规则解析', () => {
+  test('单端口', () => {
+    const rules = parsePortRule('DST-PORT', '443', '');
+    expect(rules).toHaveLength(1);
+    expect(rules[0]).toEqual({ type: 'DST-PORT', value: '443', supported: true, noResolve: '' });
+  });
+
+  test('端口范围', () => {
+    const rules = parsePortRule('DST-PORT', '8000-9000', '');
+    expect(rules).toHaveLength(1);
+    expect(rules[0]).toEqual({ type: 'DST-PORT', value: '8000-9000', supported: true, noResolve: '' });
+  });
+
+  test('多端口 /', () => {
+    const rules = parsePortRule('DST-PORT', '80/443/8080', '');
+    expect(rules).toHaveLength(3);
+    expect(rules[0].value).toBe('80');
+    expect(rules[1].value).toBe('443');
+    expect(rules[2].value).toBe('8080');
+  });
+
+  test('多端口 ,', () => {
+    const rules = parsePortRule('DST-PORT', '80,443,8080', '');
+    expect(rules).toHaveLength(3);
+    expect(rules[0].value).toBe('80');
+    expect(rules[1].value).toBe('443');
+    expect(rules[2].value).toBe('8080');
+  });
+
+  test('混合格式', () => {
+    const rules = parsePortRule('DST-PORT', '114-514/810-1919/65530', '');
+    expect(rules).toHaveLength(3);
+    expect(rules[0].value).toBe('114-514');
+    expect(rules[1].value).toBe('810-1919');
+    expect(rules[2].value).toBe('65530');
+  });
+
+  test('SRC-PORT 同样支持', () => {
+    const rules = parsePortRule('SRC-PORT', '80/443', ',no-resolve');
+    expect(rules).toHaveLength(2);
+    expect(rules[0].type).toBe('SRC-PORT');
+    expect(rules[1].type).toBe('SRC-PORT');
+    expect(rules[0].noResolve).toBe(',no-resolve');
+  });
+});
+
+describe('parseRuleLine - 端口规则', () => {
+  test('DST-PORT 单端口', () => {
+    const rules = parseRuleLine('DST-PORT,443');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].type).toBe('DST-PORT');
+    expect(rules[0].value).toBe('443');
+  });
+
+  test('DST-PORT 范围', () => {
+    const rules = parseRuleLine('DST-PORT,8000-9000');
+    expect(rules).toHaveLength(1);
+    expect(rules[0].value).toBe('8000-9000');
+  });
+
+  test('DST-PORT 多端口 /', () => {
+    const rules = parseRuleLine('DST-PORT,80/443/8080');
+    expect(rules).toHaveLength(3);
+    expect(rules[0].value).toBe('80');
+    expect(rules[1].value).toBe('443');
+    expect(rules[2].value).toBe('8080');
+  });
+
+  test('DST-PORT 多端口 ,', () => {
+    const rules = parseRuleLine('DST-PORT,80,443,8080');
+    expect(rules).toHaveLength(3);
+    expect(rules[0].value).toBe('80');
+    expect(rules[1].value).toBe('443');
+    expect(rules[2].value).toBe('8080');
+  });
+
+  test('DST-PORT 端口后跟策略名', () => {
+    const rules = parseRuleLine('DST-PORT,80,443,REJECT');
+    expect(rules).toHaveLength(2);
+    expect(rules[0].value).toBe('80');
+    expect(rules[1].value).toBe('443');
+  });
+
+  test('DST-PORT 带 no-resolve', () => {
+    const rules = parseRuleLine('DST-PORT,80/443,no-resolve');
+    expect(rules).toHaveLength(2);
+    expect(rules[0].noResolve).toBe(',no-resolve');
+    expect(rules[1].noResolve).toBe(',no-resolve');
+  });
+
+  test('SRC-PORT 多端口', () => {
+    const rules = parseRuleLine('SRC-PORT,1024,2048');
+    expect(rules).toHaveLength(2);
+    expect(rules[0].type).toBe('SRC-PORT');
+    expect(rules[1].type).toBe('SRC-PORT');
+  });
+});
+
+describe('parseClashRules - 端口规则端到端', () => {
+  test('DST-PORT 多端口拆分', () => {
+    const text = 'DST-PORT,80/443/8080';
+    const rules = parseClashRules(text);
+    expect(rules).toHaveLength(3);
+    expect(rules[0]).toEqual({ type: 'DST-PORT', value: '80', supported: true, noResolve: '' });
+    expect(rules[1]).toEqual({ type: 'DST-PORT', value: '443', supported: true, noResolve: '' });
+    expect(rules[2]).toEqual({ type: 'DST-PORT', value: '8080', supported: true, noResolve: '' });
+  });
+
+  test('DST-PORT 混合域名规则', () => {
+    const text = `DST-PORT,80/443
+DOMAIN,example.com
+DST-PORT,8080`;
+    const rules = parseClashRules(text);
+    expect(rules).toHaveLength(4);
+    expect(rules[0].type).toBe('DST-PORT');
+    expect(rules[1].type).toBe('DST-PORT');
+    expect(rules[2].type).toBe('DOMAIN');
+    expect(rules[3].type).toBe('DST-PORT');
   });
 });

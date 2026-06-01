@@ -146,9 +146,27 @@ function inferRuleType(value) {
 }
 
 /**
+ * 解析端口规则，支持多端口拆分
+ * @param {string} type - 规则类型 (SRC-PORT / DST-PORT)
+ * @param {string} value - 端口值（可能包含 / 或 , 分隔的多端口）
+ * @param {string} noResolve - no-resolve 标志
+ * @returns {Array} 拆分后的规则数组
+ */
+function parsePortRule(type, value, noResolve) {
+  const ports = value.replace(/,/g, '/').split('/').filter(Boolean);
+
+  return ports.map(port => ({
+    type,
+    value: port.trim(),
+    supported: true,
+    noResolve
+  }));
+}
+
+/**
  * 解析单行规则
  * @param {string} line - 规则行
- * @returns {{ type: string, value: string, supported: boolean, noResolve: string } | null}
+ * @returns {Array<{ type: string, value: string, supported: boolean, noResolve: string }>}
  */
 function parseRuleLine(line) {
   // 清洗输入
@@ -156,7 +174,7 @@ function parseRuleLine(line) {
 
   // 跳过注释和空行
   if (isComment || !cleaned) {
-    return null;
+    return [];
   }
 
   // 分割类型和值
@@ -164,30 +182,56 @@ function parseRuleLine(line) {
 
   if (parts.length >= 2) {
     const type = parts[0].toUpperCase().trim();
-    // 对齐原版 rule-parser.js：只取 parts[1] 作为规则值，丢弃后续策略字段
+
+    // 端口规则特殊处理：收集所有端口值
+    if (type === 'SRC-PORT' || type === 'DST-PORT') {
+      const portParts = [];
+      for (let i = 1; i < parts.length; i++) {
+        const part = parts[i].trim();
+        // 包含斜杠的组合（如 114-514/810-1919），按斜杠拆分
+        if (part.includes('/')) {
+          portParts.push(...part.split('/').filter(Boolean));
+        }
+        // 纯数字或范围（如 8000-9000）
+        else if (/^\d+(-\d+)?$/.test(part)) {
+          portParts.push(part);
+        }
+        // 非端口值（如策略名 REJECT、no-resolve），停止收集
+        else {
+          break;
+        }
+      }
+      if (portParts.length > 0) {
+        const value = restoreRegex(portParts.join(','));
+        return parsePortRule(type, value, noResolve);
+      }
+      return [];
+    }
+
+    // 非端口规则：只取 parts[1]
     const value = restoreRegex(parts[1].trim());
 
     if (!value) {
-      return null;
+      return [];
     }
 
-    return {
+    return [{
       type,
       value,
       supported: isSupportedType(type),
       noResolve
-    };
+    }];
   }
 
   // 无逗号行，智能推断类型
   const value = restoreRegex(cleaned.trim());
   if (!value) {
-    return null;
+    return [];
   }
 
   const inferred = inferRuleType(value);
   inferred.noResolve = noResolve;
-  return inferred;
+  return [inferred];
 }
 
 /**
@@ -200,10 +244,8 @@ function parsePlainText(text) {
   const rules = [];
 
   for (const line of lines) {
-    const rule = parseRuleLine(line);
-    if (rule) {
-      rules.push(rule);
-    }
+    const lineRules = parseRuleLine(line);
+    rules.push(...lineRules);
   }
 
   return rules;
@@ -230,6 +272,7 @@ if (typeof window !== 'undefined') {
   window.parseClashRules = parseClashRules;
   window.parsePlainText = parsePlainText;
   window.parseRuleLine = parseRuleLine;
+  window.parsePortRule = parsePortRule;
   window.inferRuleType = inferRuleType;
   window.isSupportedType = isSupportedType;
   window.cleanLine = cleanLine;
@@ -244,6 +287,7 @@ if (typeof module !== 'undefined' && module.exports) {
     parseClashRules,
     parsePlainText,
     parseRuleLine,
+    parsePortRule,
     inferRuleType,
     isSupportedType,
     cleanLine,
