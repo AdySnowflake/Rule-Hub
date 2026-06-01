@@ -18,30 +18,13 @@ const TYPE_MAPPING = {
   'MATCH': 'FINAL'
 };
 
-// Loon 不支持的规则类型（对齐原版 rule-parser.js Loon 分支的 other 过滤）
-const LOON_UNSUPPORTED_TYPES = [
-  'SCRIPT',
-  'RULE-SET'
-];
-
 /**
- * 过滤不支持的规则（对齐原版 Loon 分支）
+ * 过滤不支持的规则
  * @param {Array<{ type: string, supported: boolean }>} rules - 规则数组
  * @returns {Array} 过滤后的规则
  */
 function filterUnsupported(rules) {
-  return rules.filter(rule => {
-    if (!rule.supported) {
-      return false;
-    }
-
-    // Loon 不支持的规则类型
-    if (LOON_UNSUPPORTED_TYPES.includes(rule.type)) {
-      return false;
-    }
-
-    return true;
-  });
+  return rules.filter(rule => rule.supported);
 }
 
 /**
@@ -93,7 +76,7 @@ function generateStatsHeader(originalCount, convertedRules, unsupportedRules) {
  */
 function generateLoonRules(rules, originalCount) {
   const supportedRules = filterUnsupported(rules);
-  const unsupportedRules = rules.filter(r => !r.supported || LOON_UNSUPPORTED_TYPES.includes(r.type));
+  const unsupportedRules = rules.filter(r => !r.supported);
 
   const loonRules = [];
 
@@ -118,7 +101,6 @@ if (typeof window !== 'undefined') {
   window.formatLoonRule = formatLoonRule;
   window.generateStatsHeader = generateStatsHeader;
   window.TYPE_MAPPING = TYPE_MAPPING;
-  window.LOON_UNSUPPORTED_TYPES = LOON_UNSUPPORTED_TYPES;
 }
 
 // CommonJS 导出（Jest 测试）
@@ -128,7 +110,6 @@ if (typeof module !== 'undefined' && module.exports) {
     filterUnsupported,
     formatLoonRule,
     generateStatsHeader,
-    TYPE_MAPPING,
-    LOON_UNSUPPORTED_TYPES
+    TYPE_MAPPING
   };
 }

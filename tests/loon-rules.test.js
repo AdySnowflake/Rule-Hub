@@ -7,8 +7,7 @@ const {
   filterUnsupported,
   formatLoonRule,
   generateStatsHeader,
-  TYPE_MAPPING,
-  LOON_UNSUPPORTED_TYPES
+  TYPE_MAPPING
 } = require('../src/loon-rules');
 
 describe('filterUnsupported', () => {
@@ -16,7 +15,7 @@ describe('filterUnsupported', () => {
     const rules = [
       { type: 'DOMAIN', value: 'example.com', supported: true },
       { type: 'UNKNOWN', value: 'test', supported: false },
-      { type: 'SCRIPT', value: 'test.js', supported: true }
+      { type: 'SCRIPT', value: 'test.js', supported: false }
     ];
     const filtered = filterUnsupported(rules);
     expect(filtered).toHaveLength(1);
@@ -136,16 +135,5 @@ describe('TYPE_MAPPING', () => {
     expect(TYPE_MAPPING['DOMAIN-SUFFIX']).toBe('DOMAIN-SUFFIX');
     expect(TYPE_MAPPING['IP-CIDR']).toBe('IP-CIDR');
     expect(TYPE_MAPPING['MATCH']).toBe('FINAL');
-  });
-});
-
-describe('LOON_UNSUPPORTED_TYPES', () => {
-  test('should not include DST-PORT (converted to DEST-PORT)', () => {
-    expect(LOON_UNSUPPORTED_TYPES).not.toContain('DST-PORT');
-  });
-
-  test('should include SCRIPT and RULE-SET', () => {
-    expect(LOON_UNSUPPORTED_TYPES).toContain('SCRIPT');
-    expect(LOON_UNSUPPORTED_TYPES).toContain('RULE-SET');
   });
 });
