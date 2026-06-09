@@ -105,14 +105,14 @@ function buildHTML(engineJS) {
       <div class="card">
         <div class="card-title">输入规则</div>
         <div class="mode-switch">
-          <button class="mode-btn active" data-mode="text" onclick="switchMode('text')">粘贴文本</button>
-          <button class="mode-btn" data-mode="url" onclick="switchMode('url')">URL 获取</button>
+          <button class="mode-btn active" data-mode="url" onclick="switchMode('url')">URL 获取</button>
+          <button class="mode-btn" data-mode="text" onclick="switchMode('text')">粘贴文本</button>
         </div>
-        <div id="url-input" class="input-area" style="display:none">
+        <div id="url-input" class="input-area">
           <label>规则集 URL</label>
           <input type="text" id="inputUrl" placeholder="https://example.com/rules.yaml">
         </div>
-        <div id="text-input" class="input-area">
+        <div id="text-input" class="input-area" style="display:none">
           <label>Clash 规则集</label>
           <textarea id="inputText" placeholder="粘贴 Clash 规则集内容..."></textarea>
         </div>
@@ -152,7 +152,7 @@ function buildHTML(engineJS) {
   ${engineJS}
 
   // === 原生 JS UI 逻辑 ===
-  var inputMode = 'text';
+  var inputMode = 'url';
 
   function switchMode(mode) {
     inputMode = mode;
@@ -206,7 +206,7 @@ function buildHTML(engineJS) {
       var url = document.getElementById('inputUrl').value.trim();
       if (!url) { showError('请输入 URL'); setLoading(false); return; }
       // 通过 /convert 端点由脚本侧拉取（避免 CORS）
-      fetch('/convert?url=' + encodeURIComponent(url))
+      fetch('/convert?url=' + encodeURIComponent(url), { headers: { 'User-Agent': RULE_HUB_UA } })
         .then(function(r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.text();

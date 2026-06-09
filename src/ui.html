@@ -325,17 +325,17 @@
         <div class="mode-switch">
           <button
             class="mode-btn"
-            :class="{ active: inputMode === 'text' }"
-            @click="inputMode = 'text'"
-          >
-            粘贴文本
-          </button>
-          <button
-            class="mode-btn"
             :class="{ active: inputMode === 'url' }"
             @click="inputMode = 'url'"
           >
             URL 获取
+          </button>
+          <button
+            class="mode-btn"
+            :class="{ active: inputMode === 'text' }"
+            @click="inputMode = 'text'"
+          >
+            粘贴文本
           </button>
         </div>
 
@@ -442,7 +442,7 @@
     const app = createApp({
       setup() {
         // 响应式数据
-        const inputMode = ref('text');
+        const inputMode = ref('url');
         const inputUrl = ref('');
         const inputText = ref('');
         const outputText = ref('');
