@@ -416,11 +416,11 @@
 
         <!-- 输出操作 -->
         <div class="output-actions">
-          <button class="btn btn-success" @click="copyResult">
-            复制结果
-          </button>
           <button class="btn btn-primary" v-if="inputMode === 'url'" @click="copyLink">
             复制链接
+          </button>
+          <button class="btn btn-success" @click="copyResult">
+            复制结果
           </button>
         </div>
       </div>

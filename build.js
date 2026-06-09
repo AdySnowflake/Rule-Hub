@@ -140,8 +140,8 @@ function buildHTML(engineJS) {
           <textarea id="outputText" readonly></textarea>
         </div>
         <div class="output-actions">
-          <button class="btn btn-success" onclick="doCopy()">复制结果</button>
           <button class="btn btn-primary" id="copyLinkBtn" onclick="doCopyLink()" style="display:none">复制链接</button>
+          <button class="btn btn-success" onclick="doCopy()">复制结果</button>
         </div>
       </div>
     </div>
