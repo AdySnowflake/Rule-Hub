@@ -11,7 +11,8 @@ Rule-Hub 是一个轻量级的 Clash 规则集 → Loon 规则集转换器，以
 ```bash
 npm install          # 安装依赖（仅 jest）
 npm test             # 运行测试（Jest）
-npm run build        # 构建产物（prebuild 自动先跑测试）
+node build.js        # 首次构建（生成 ui.js / engine.js，prebuild 测试需要产物已存在）
+npm run build        # 后续构建（prebuild 自动先跑测试）
 node local-server.js # 启动局域网开发服务器（默认 0.0.0.0:8080，PORT 环境变量可改）
 ```
 

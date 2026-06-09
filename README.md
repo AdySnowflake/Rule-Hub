@@ -114,10 +114,11 @@ node local-server.js
 - **后端**: JavaScript (Loon 脚本环境)
 - **部署**: Loon 插件
 
-## 测试
+## 测试与构建
 
 ```bash
 npm install
 npm test
-npm run build
+node build.js    # 首次构建（生成 ui.js / engine.js）
+npm run build    # 后续构建（会先自动跑测试）
 ```

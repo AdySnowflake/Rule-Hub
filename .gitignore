@@ -2,8 +2,8 @@
 node_modules/
 
 # 构建产物（由 build.js 生成）
-src/ui.js
-src/engine.js
+# src/ui.js
+# src/engine.js
 
 # 日志文件
 *.log
