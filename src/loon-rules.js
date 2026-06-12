@@ -15,6 +15,7 @@ const TYPE_MAPPING = {
   'GEOIP': 'GEOIP',
   'SRC-PORT': 'SRC-PORT',
   'DST-PORT': 'DEST-PORT',
+  'NETWORK': 'PROTOCOL',
   'MATCH': 'FINAL'
 };
 

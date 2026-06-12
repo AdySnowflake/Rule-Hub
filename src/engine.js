@@ -15,6 +15,7 @@ const SUPPORTED_TYPES = [
   'GEOIP',
   'SRC-PORT',
   'DST-PORT',
+  'NETWORK',
   'MATCH',
   'AND',
   'OR',
@@ -377,6 +378,7 @@ const TYPE_MAPPING = {
   'GEOIP': 'GEOIP',
   'SRC-PORT': 'SRC-PORT',
   'DST-PORT': 'DEST-PORT',
+  'NETWORK': 'PROTOCOL',
   'MATCH': 'FINAL'
 };
 
